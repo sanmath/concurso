@@ -19,12 +19,55 @@ library(readxl)
 library(data.table)
 library(gdata)
 library(gridExtra)
+library(ggvis)
 
-dir <- "/Users/usuario4/Dropbox/Source Stat Lab/Concurso/"
+dir <- "/Users/Diego/Dropbox/Source Stat Lab/Concurso/"
 setwd(dir)
 
+# Nodos principales & secundarios
+nodos_principales <- read_excel("./Informacion/Nodos/nodos_principales_secundarios.xlsx", sheet=1)
+nodos_secundarios <- read_excel("./Informacion/Nodos/nodos_principales_secundarios.xlsx", sheet=2)
+
+# E & N positivos / S & W negativos
+nodos_prin <- nodos_principales %>% mutate(LATITUD=ifelse(N_S=="S", -GRA_LAT - (MIN_LAT/60) - (SEG_LAT/3600), 
+                                            GRA_LAT + (MIN_LAT/60) + (SEG_LAT/3600))) %>% 
+  mutate(LONGITUD=ifelse(O_W=="W", -GRA_LON - (MIN_LON/60) - (SEG_LON/3600),
+                                             GRA_LON + (MIN_LON/60) + (SEG_LON/3600))) %>% 
+  select(CODIGO, PROVINCIA, CIUDAD, LATITUD, LONGITUD)
+
+nodos_secu <- nodos_secundarios %>% mutate(LATITUD=ifelse(N_S=="S", -GRA_LAT - (MIN_LAT/60) - (SEG_LAT/3600), 
+                                            GRA_LAT + (MIN_LAT/60) + (SEG_LAT/3600))) %>% 
+  mutate(LONGITUD=ifelse(O_W=="W", -GRA_LON - (MIN_LON/60) - (SEG_LON/3600),
+                         GRA_LON + (MIN_LON/60) + (SEG_LON/3600))) %>% 
+  select(CODIGO, PROVINCIA, CIUDAD, LATITUD, LONGITUD)
+
+# Enlaces 
+enlaces <- fread("./Informacion/Nodos/enlaces.csv")
+setnames(enlaces, c("CODIGO", "CIUDAD", "MEDIO.DE.TRANSMISI\xd3N", "SERVICIO", "VELOCIDAD.DE.TRANSMISI\xd3N..Kbps."), 
+         c('CODIGO', 'CIUDAD', 'TRANSMISION', 'SERVICIO', 'VELOCIDAD'))
+
+nodo_enlace_pri <- left_join(enlaces, data.table(nodos_prin), by="CODIGO")
+nodo_enlace_sec <- left_join(enlaces, data.table(nodos_secu), by="CODIGO")
+
+# Hospitales
+hospitales <- read_excel("./Informacion/Hospitales/SISTEMA DE SALUD ESTATAL.xls")
+
+# Poblacion
+poblacion <- read_excel("./Informacion/Poblacional/Poblacion por Sectores.xlsx")
+
+
+
+
+nodos_secu %>% ggvis(~LONGITUD, ~LATITUD) %>% layer_points()
+
+# Graficamos el mapa de Ecuador
+setwd("./mapas_Ecuador")
+map_provincias <- readOGR(dsn=".", layer="ECU_adm1")
+plot(map_provincias)
+
+
 # Lectura nodos principales
-setwd("./nodos_principales")
+setwd("./Informacion/Nodos")
 nodos_principales <- readOGR(dsn=".", layer="nodos_principales")
 slotNames(nodos_principales)
 nodos_principales@data
